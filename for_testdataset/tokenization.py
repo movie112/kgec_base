@@ -1,8 +1,3 @@
-'''bpe 토큰화할때 보냈다 삭제한거 말고 이거에요!
-input_file: noised 문장 전체 txt 파일
-prefix: 저장할 경로
-vocab_size: 한국학회때 16000,24000,32000 정도로 해봤었는데 간단하게 돌릴대는 작게 두시고 큰 데이터 돌릴때는 삼만 넘어야 할거같아요
-char_coverage: 보통 0.9999 썼는데, 결과 너무 좋다 싶으면 0.0001씩 줄여도 돼요 ㅎ.ㅎ'''
 
 import sentencepiece as spm
 import json
