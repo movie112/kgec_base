@@ -160,15 +160,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     args.tokenizer_name = 'bpe'
-    args.tokenizer_dir = './HDD/yeonghwa/kgec/tokenizer'
-    args.vocab_model_path = f'/HDD/yeonghwa/kgec/tokenizer/{args.tokenizer_name}.model'
-    args.data_dir = '/HDD/seunguk/KGEC'
+    args.tokenizer_dir = './HDD//kgec/tokenizer'
+    args.vocab_model_path = f'/HDD//kgec/tokenizer/{args.tokenizer_name}.model'
+    args.data_dir = '/HDD//KGEC'
 
-    args.result_dir = '/HDD/yeonghwa/kgec/result'
-    args.result_path = f'/HDD/yeonghwa/kgec/result/log_{args.tokenizer_name}.txt'
-    args.model_dir = '/HDD/yeonghwa/kgec/model'
-    # args.gold_path = '/HDD/yeonghwa/KGEC/result/bpe/gold.txt'
-    # args.pred_path = '/HDD/yeonghwa/KGEC/result/bpe/pred.txt'
+    args.result_dir = '/HDD//kgec/result'
+    args.result_path = f'/HDD//kgec/result/log_{args.tokenizer_name}.txt'
+    args.model_dir = '/HDD//kgec/model'
+    # args.gold_path = '/HDD//KGEC/result/bpe/gold.txt'
+    # args.pred_path = '/HDD//KGEC/result/bpe/pred.txt'
 
     args.lr = 1e-5
     args.num_warmup_steps = 1000
@@ -216,7 +216,7 @@ if __name__ == '__main__':
         gold_path = os.path.join(args.result_dir, args.tokenizer_name, f'gold_{epoch}.txt')
         pred_path = os.path.join(args.result_dir, args.tokenizer_name, f'pred_{epoch}.txt')
 
-        os.system(f'/home/yeonghwa/workspace/kgec/scripts/m2scorer.py {pred_path} {gold_path}')
+        os.system(f'/home//workspace/kgec/scripts/m2scorer.py {pred_path} {gold_path}')
         os.path.join(args.result_dir, args.tokenizer_name, f'gold_{epoch}.txt')
         os.path.join(args.result_dir, args.tokenizer_name, f'pred_{epoch}.txt')
         
