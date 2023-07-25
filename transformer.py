@@ -137,4 +137,3 @@ class GreedyTextGenerator:
 
         generated_text = self.tokenizer.decode(tgt_tokens[0].tolist()[1:])  # Skip the <s> token
         return generated_text
- 
