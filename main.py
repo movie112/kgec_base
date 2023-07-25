@@ -4,6 +4,7 @@ from customdataset import *
 from tokenization import *
 from utils import printsave
 
+import os
 import torch.optim as optim
 from torch import nn
 import torch
@@ -12,6 +13,7 @@ import pandas as pd
 import argparse
 import time
 from tqdm.auto import tqdm
+
 
 
 if __name__ == '__main__':
@@ -40,7 +42,6 @@ if __name__ == '__main__':
         default = '',
         help    = 'training result will be save in this directory'
     )
-
     parser.add_argument(
         '--epochs',
         type    = int,
@@ -53,7 +54,6 @@ if __name__ == '__main__':
         default = 64,
         help    = 'batch size when training' 
     )
-    
     parser.add_argument(
         '--vocab_size',
         type    = int,
@@ -72,7 +72,6 @@ if __name__ == '__main__':
         default = 96,
         help    = 'decoder input vocab size, default value for phoneme-level tokenization'
     )
-    
     parser.add_argument(
         '--hidden_dim',
         type    = int,
@@ -103,7 +102,6 @@ if __name__ == '__main__':
         default = 0.1,
         help    = 'dropout ratio in Transformer'
     )
-    
     parser.add_argument(
         '--lr',
         type    = float,
@@ -134,12 +132,12 @@ if __name__ == '__main__':
         default = 1,
         help    = 'gradient clipping'
     )
-    parser.add_argument(
-        '--mode',
-        type    = str,
-        default = None,
-        help    = 'GEC using blank or not'
-    )
+    # parser.add_argument(
+    #     '--mode',
+    #     type    = str,
+    #     default = None,
+    #     help    = 'GEC using blank or not'
+    # )
 
     parser.add_argument(
         '--tokenizer',
@@ -153,31 +151,31 @@ if __name__ == '__main__':
         default = None,
         help    = 'BPE tokenizer must be located in this directory'
     )
-    ##
-    parser.add_argument(
-        '--vocab_model',
-        type    = str,
-        default = '',
-    )
+    #
+    # parser.add_argument(
+    #     '--vocab_model',
+    #     type    = str,
+    #     default = '',
+    # )
     args = parser.parse_args()
 
-    args.tokenizer = 'char'
+    args.tokenizer_name = 'bpe'
     args.tokenizer_dir = './HDD/yeonghwa/kgec/tokenizer'
-    args.vocab_model_path = f'/HDD/yeonghwa/kgec/tokenizer/{args.tokenizer}.model'
-    args.data_dir = '/HDD/kyohoon1/KGEC'
+    args.vocab_model_path = f'/HDD/yeonghwa/kgec/tokenizer/{args.tokenizer_name}.model'
+    args.data_dir = '/HDD/seunguk/KGEC'
 
-    args.result_dir = '/HDD/yeonghwa/KGEC/result'
+    args.result_dir = '/HDD/yeonghwa/kgec/result'
+    args.result_path = f'/HDD/yeonghwa/kgec/result/log_{args.tokenizer_name}.txt'
+    args.model_dir = '/HDD/yeonghwa/kgec/model'
     # args.gold_path = '/HDD/yeonghwa/KGEC/result/bpe/gold.txt'
     # args.pred_path = '/HDD/yeonghwa/KGEC/result/bpe/pred.txt'
-    args.result_path = '/HDD/yeonghwa/KGEC/result/log.txt'
-    args.model_dir = '/HDD/yeonghwa/KGEC/model'
 
     args.lr = 1e-5
     args.num_warmup_steps = 1000
-    args.batch_size = 16
-    args.epoch = 1
+    args.batch_size = 64
+    args.epoch = 30
 
-    cuda_num = 1
+    cuda_num = 3
     # define device
     args.device = torch.device(f'cuda:{cuda_num}' if torch.cuda.is_available() else 'cpu')
     print(f'using device: {args.device}\n')
@@ -187,7 +185,7 @@ if __name__ == '__main__':
     args.input_dim = args.vocab_size
     args.output_dim = args.vocab_size
     print(f'vocab size: {args.vocab_size}\n')
-    
+
     # define model 
     model = Transformer_(args)
     model.apply(initialize_weights)
@@ -202,16 +200,23 @@ if __name__ == '__main__':
     loss_fn = nn.CrossEntropyLoss(ignore_index=2)  # pad_token_id == 2
 
     for epoch in range(args.epoch):
-        args.data_path = os.path.join(args.data_dir, f'total_sorted_{epoch+9}.json')
+        args.data_path = os.path.join(args.data_dir, f'total_cut_{epoch+9}.json')
         train_loader, test_loader = make_all_loaders(args, epoch)
-        print("finish making loaders") 
+        print("finish making loaders")
+
+        print('test_loader', len(test_loader)) 
     
-        # training 
+    # # #     # # training 
         train(model, train_loader, optimizer, loss_fn, args, epoch)
         del train_loader
 
-        # test
-        # test(test_loader, args, epoch)
+    #     # test
+        test(test_loader, args, epoch)
 
+        gold_path = os.path.join(args.result_dir, args.tokenizer_name, f'gold_{epoch}.txt')
+        pred_path = os.path.join(args.result_dir, args.tokenizer_name, f'pred_{epoch}.txt')
 
-    
+        os.system(f'/home/yeonghwa/workspace/kgec/scripts/m2scorer.py {pred_path} {gold_path}')
+        os.path.join(args.result_dir, args.tokenizer_name, f'gold_{epoch}.txt')
+        os.path.join(args.result_dir, args.tokenizer_name, f'pred_{epoch}.txt')
+        
