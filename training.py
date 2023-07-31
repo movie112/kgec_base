@@ -1,68 +1,108 @@
-from transformer import create_mask
 import torch
 from tqdm.auto import tqdm
-import gc
 
 from tokenization import *
 from customdataset import *
 from transformer import *
 from utils import *
 
-def train(model, iterator, optimizer, loss_fn, args, epoch):
-    printsave(args.result_path, "====== start training =======")
-    model.train()
-    epoch_loss = 0
-    batch_loss = 0
+def training(args):
+    
+    model = Transformer_(args)
+    model.apply(initialize_weights)
+    model = model.to(args.device)
+    print(f'model has {count_parameters(model):,} trainable parameters\n')
 
-    scheduler = get_scheduler(optimizer, iterator, args)
-    bar = tqdm(enumerate(iterator), total=len(iterator), desc=f'train:{epoch}/{args.epoch}')
+    train_loader = make_loader(args, 'train')
+    valid_loader = make_loader(args, 'valid')
 
-    for i, batch in bar:
-        src = batch[0].T.to(args.device)
-        tgt = batch[1].T.to(args.device)
-        src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = create_mask(src, tgt[:-1,:], args.device)
-
-        optimizer.zero_grad() 
-        output = model(src, tgt[:-1,:],
-                       src_mask, tgt_mask,
-                       src_padding_mask, tgt_padding_mask, src_padding_mask)
-
-        tgt_output = tgt[1:, :].reshape(-1)  # ignore for target's 
-        output = output.reshape(-1, output.shape[-1])
-        loss = loss_fn(output, tgt_output)
-
-        loss.backward()     
-        optimizer.step() 
-        scheduler.step()     
-        # torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)  # gradient clipping
-
-        epoch_loss += loss.item()
-        batch_loss += loss.item()
-
-        if (i+1) % 1000 == 0:
-            print(f'loss: {batch_loss / 1000}')
-            batch_loss = 0
-
-            # gc.collect()
-            # torch.cuda.empty_cache()
-    # model save every epoch
-    torch.save(model.state_dict(), os.path.join(args.model_dir, f'model_{epoch}.pt'))
-                                       # update parameters
-    printsave(args.result_path, f'epoch: {epoch}')
-    printsave(args.result_path, f'epoch loss: {epoch_loss / len(iterator)}')
-    # return epoch_loss / len(iterator)
+    optimizer = torch.optim.Adam(model.parameters(),
+                                 lr=args.lr,
+                                 betas=(args.beta1, args.beta2),
+                                 eps=args.eps)
+    loss_fn = nn.CrossEntropyLoss(ignore_index=2)  # pad_token_id == 2
+    scheduler = get_scheduler(optimizer, train_loader, args)
 
 
-def test(iterator, args, epoch):
+    best_valid_loss = np.inf
+    for epoch in range(args.epoch):
+        printsave(args.result_path, f"====== {epoch} =======")
+        model.train()
+        batch_loss = 0
+        bar = tqdm(enumerate(train_loader), total=len(train_loader), desc=f'train:{epoch}/{args.epoch}')
+        for step, batch in bar:
+            src = batch[0].T.to(args.device)
+            tgt = batch[1].T.to(args.device)
+            src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = create_mask(src, tgt[:-1,:], args.device)
+
+            optimizer.zero_grad() 
+            output = model(src, tgt[:-1,:],
+                           src_mask, tgt_mask,
+                           src_padding_mask, tgt_padding_mask, src_padding_mask)
+
+            tgt_output = tgt[1:, :].reshape(-1)
+            output = output.reshape(-1, output.shape[-1])
+            loss = loss_fn(output, tgt_output)
+
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)  # gradient clipping
+            optimizer.step()
+            scheduler.step()
+
+            batch_loss += loss.item()
+            if (step+1) % 2000 == 0:
+                printsave(args.result_path, f'loss: {batch_loss / 2000}')
+                batch_loss = 0
+
+        printsave(args.result_path, "====== start validation =======")
+        batch_loss = 0
+        total_loss = 0
+        stop_cnt = 0
+        with torch.no_grad():
+            model.eval()
+            bar = tqdm(enumerate(valid_loader), total=len(valid_loader), desc=f'valid:{epoch}/{args.epoch}')
+            for step, batch in bar:
+                src = batch[0].T.to(args.device)
+                tgt = batch[1].T.to(args.device)
+                src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = create_mask(src, tgt[:-1,:], args.device)
+
+                output = model(src, tgt[:-1,:],
+                               src_mask, tgt_mask,
+                               src_padding_mask, tgt_padding_mask, src_padding_mask)
+
+                tgt_output = tgt[1:, :].reshape(-1)
+                output = output.reshape(-1, output.shape[-1])
+                loss = loss_fn(output, tgt_output)
+                batch_loss += loss.item()
+                total_loss += loss.item()
+
+                if (step+1) % 1000 == 0:
+                    printsave(args.result_path, f'loss: {batch_loss / 1000}')
+                    batch_loss = 0
+            printsave(args.result_path, f'total loss: {total_loss / len(valid_loader)}')
+            if best_valid_loss > total_loss / len(valid_loader):
+                stop_cnt = 0
+                best_valid_loss = total_loss / len(valid_loader)
+                torch.save(model.state_dict(), os.path.join(args.model_dir, args.tokenizer_name, f'model.pt'))
+                printsave(args.result_path, 'saved model at', os.path.join(args.model_dir, args.tokenizer_name, f'model.pt'))
+            else:
+                stop_cnt += 1
+                if stop_cnt == args.patience:
+                    printsave(args.result_path, 'early stopping')
+                    break
+
+def testing(args):
     printsave(args.result_path, "====== start testing =======")
-    file_path = os.path.join(args.model_dir, args.tokenizer, f'pred_{epoch}.txt')
+    test_loader = make_loader(args, 'test')
+    file_path = os.path.join(args.result_dir, args.tokenizer_name, f'pred.txt')
 
     model = Transformer_(args)
-    model.load_state_dict(torch.load(os.path.join(args.model_dir, f'model_{epoch}.pt')))
+    model.load_state_dict(torch.load(os.path.join(args.model_dir, args.tokenizer_name, f'model_.pt')))
     model = model.to(args.device)
     model.eval()
     with torch.no_grad():
-        bar = tqdm(enumerate(iterator), total=len(iterator), desc=f'test:{epoch}/{args.epoch}')
+        ys_lst = []
+        bar = tqdm(enumerate(test_loader), total=len(test_loader))
 
         for i, batch in bar:
             src = batch[0].T.to(args.device)
@@ -90,17 +130,17 @@ def test(iterator, args, epoch):
                 
                 if unfinished_sequences.max() == 0:
                     break
-            ys = ys.T
-            decoded_ys = [' '.join([args.tokenizer.DecodePieces(i) for i in ys[j].tolist() if i not in [0, 1, 2]]) for j in range(args.batch_size)]
-            save(file_path, '\n'.join(decoded_ys))
-            # for j in range(args.batch_size):
-                
-            #     s = ' '.join([args.tokenizer.DecodePieces(i) for i in ys[j].tolist() if i not in [0,1,2]])
-            #     save(file_path, s)
-            # for j in range(args.batch_size):
-            #     print(' '.join([tokenizer.DecodePieces(i) for i in ys[:,j] if i not in [0,1,2]]))
+            ys = ys.T.tolist()
+            ys_lst += ys
+        print(f'saving pred.txt at {file_path}')
+        decoded_ys = [args.tokenizer.decode(ys) for ys in ys_lst ]
+        with open(file_path, 'w') as f:
+            f.write('\n'.join(decoded_ys))
+    gold_path = os.path.join(args.result_dir, args.tokenizer_name, f'gold.txt')
+    pred_path = os.path.join(args.result_dir, args.tokenizer_name, f'pred.txt')
 
- 
+    os.system(f'/home/yeonghwa/workspace/kgec/baseline/scripts/m2scorer.py {pred_path} {gold_path}')
+
 
 def epoch_time(start_time, end_time):
     elapsed_time = end_time - start_time
