@@ -160,10 +160,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     args.tokenizer_name = 'bpe'
-    args.tokenizer_dir = './HDD//kgec/tokenizer'
+    args.tokenizer_dir = '/HDD//kgec/tokenizer'
     args.vocab_model_path = f'/HDD//kgec/tokenizer/{args.tokenizer_name}.model'
-    args.data_dir = '/HDD//KGEC'
+    args.data_dir = '/HDD//kgec'
 
+    # args.tokenizer_name = 'bpe_c'
     args.result_dir = '/HDD//kgec/result'
     args.result_path = f'/HDD//kgec/result/log_{args.tokenizer_name}.txt'
     args.model_dir = '/HDD//kgec/model'
@@ -171,52 +172,29 @@ if __name__ == '__main__':
     # args.pred_path = '/HDD//KGEC/result/bpe/pred.txt'
 
     args.lr = 1e-5
-    args.num_warmup_steps = 1000
+    args.num_warmup_steps = 2000
     args.batch_size = 64
-    args.epoch = 30
+    args.epoch = 20
+    args.dropout_ratio = 0.2
+    args.hidden_dim = 768
+    args.patience = 4
 
-    cuda_num = 3
+    cuda_num = 0
     # define device
     args.device = torch.device(f'cuda:{cuda_num}' if torch.cuda.is_available() else 'cpu')
     print(f'using device: {args.device}\n')
 
+    set_seed(42)
+    
     args.tokenizer = get_tokenizer(args)
     args.vocab_size = args.tokenizer.get_piece_size()
     args.input_dim = args.vocab_size
     args.output_dim = args.vocab_size
     print(f'vocab size: {args.vocab_size}\n')
 
-    # define model 
-    model = Transformer_(args)
-    model.apply(initialize_weights)
-    model = model.to(args.device)
-    print(f'model has {count_parameters(model):,} trainable parameters\n')
+    # train
+    training(args)
+    # test
+    testing(args)
+
     
-    # define optimizer & loss func
-    optimizer = torch.optim.Adam(model.parameters(),
-                                 lr=args.lr,
-                                 betas=(args.beta1, args.beta2),
-                                 eps=args.eps)
-    loss_fn = nn.CrossEntropyLoss(ignore_index=2)  # pad_token_id == 2
-
-    for epoch in range(args.epoch):
-        args.data_path = os.path.join(args.data_dir, f'total_cut_{epoch+9}.json')
-        train_loader, test_loader = make_all_loaders(args, epoch)
-        print("finish making loaders")
-
-        print('test_loader', len(test_loader)) 
-    
-    # # #     # # training 
-        train(model, train_loader, optimizer, loss_fn, args, epoch)
-        del train_loader
-
-    #     # test
-        test(test_loader, args, epoch)
-
-        gold_path = os.path.join(args.result_dir, args.tokenizer_name, f'gold_{epoch}.txt')
-        pred_path = os.path.join(args.result_dir, args.tokenizer_name, f'pred_{epoch}.txt')
-
-        os.system(f'/home//workspace/kgec/scripts/m2scorer.py {pred_path} {gold_path}')
-        os.path.join(args.result_dir, args.tokenizer_name, f'gold_{epoch}.txt')
-        os.path.join(args.result_dir, args.tokenizer_name, f'pred_{epoch}.txt')
-        
