@@ -14,7 +14,8 @@ class CustomDataset(Dataset):
         self.dataset   = self.make_dataset(args)
         
     def make_dataset(self, args):
-        if args.tokenizer_name == 'char': # encoding 시 앞에 4가 붙는 문제 해결
+        # char encoding 시, 앞에 공백 붙는 문제 해결
+        if args.tokenizer_name == 'char' or args.tokenizer_name == 'char_c': # encoding 시 앞에 4가 붙는 문제 해결
             dataset = []
             for i in range(len(self.src_lst)):
                 src = self.tokenizer.encode(self.src_lst[i])
@@ -26,8 +27,6 @@ class CustomDataset(Dataset):
             dataset = [(self.tokenizer.encode(src), self.tokenizer.encode(tgt))
                        for src, tgt in zip(self.src_lst, self.tgt_lst)
                        if len(src) > 0 and len(tgt) > 0]
-        # print(self.src_lst[0])
-        # print(dataset[0])
         return dataset
 
     def __getitem__(self, idx):
@@ -38,9 +37,7 @@ class CustomDataset(Dataset):
     
 def collate_fn(batch_samples):
     """ Sequence padding in batch """
-    # pad_token_id == 2 
     src_sent, tgt_sent = [], []
-
     for src, tgt in batch_samples:
         src_sent.append(torch.tensor([0] + src + [1]))  # bos, eos
         tgt_sent.append(torch.tensor([0] + tgt + [1]))  # bos, eos
@@ -59,31 +56,34 @@ def make_loader(args, mode):
     src = [item[1] for item in tqdm(raw_dataset)]
 
     if mode == 'test':
-        rest = len(tgt)%args.batch_size
-        tgt = tgt[:-rest]
-        src = src[:-rest]
+        # if len(tgt)%args.batch_size != 0:
+        #     rest = len(tgt)%args.batch_size
+        #     tgt = tgt[:-rest]
+        #     src = src[:-rest]
 
+        # gold.txt 저장
         gold_path = os.path.join(args.result_dir, args.tokenizer_name, f'gold.txt')
         if not os.path.exists(gold_path):
             print('saving gold data...')
-            with open(gold_path, 'w') as f:
+            with open(gold_path, 'w', encoding='utf-8') as f:
                 f.write('S ')
                 f.write('\nS '.join(tgt))
             print('finish saving gold data...')
-
+    # loader make
     print(f'making {mode} loader...')
     dataset = CustomDataset(args, src, tgt, args.tokenizer)
-    if mode == 'train' and args.tokenizer_name != 'bpe_c':
+    # curriculum X
+    if mode == 'train' and args.tokenizer_name == 'bpe' and args.tokenizer_name == 'char':
         print('making random sampler...')
         loader = DataLoader(dataset,
                               batch_size=args.batch_size, 
                               sampler = RandomSampler(dataset), 
                               collate_fn=collate_fn,
                               num_workers=2)
-    else:
+    else: # curriculum O
         print('making sequential sampler...')
         loader = DataLoader(dataset,
-                              batch_size=args.batch_size, 
+                              batch_size=args.batch_size if mode != 'test' else 1, 
                               sampler = SequentialSampler(dataset), 
                               collate_fn=collate_fn, 
                               num_workers=2)
