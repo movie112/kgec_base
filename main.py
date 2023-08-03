@@ -24,12 +24,6 @@ if __name__ == '__main__':
         default = '',
         help    = 'original data file must be located in this directory'
     )
-    # parser.add_argument(
-    #     '--data_size',
-    #     type    = int,
-    #     default = '',
-    #     help    = 'entire data size'
-    # )
     parser.add_argument(
         '--model_dir',
         type    = str,
@@ -132,13 +126,6 @@ if __name__ == '__main__':
         default = 1,
         help    = 'gradient clipping'
     )
-    # parser.add_argument(
-    #     '--mode',
-    #     type    = str,
-    #     default = None,
-    #     help    = 'GEC using blank or not'
-    # )
-
     parser.add_argument(
         '--tokenizer',
         type    = str,
@@ -151,27 +138,31 @@ if __name__ == '__main__':
         default = None,
         help    = 'BPE tokenizer must be located in this directory'
     )
-    #
-    # parser.add_argument(
-    #     '--vocab_model',
-    #     type    = str,
-    #     default = '',
-    # )
     args = parser.parse_args()
 
     args.tokenizer_name = 'bpe'
-    args.tokenizer_dir = '/HDD//kgec/tokenizer'
-    args.vocab_model_path = f'/HDD//kgec/tokenizer/{args.tokenizer_name}.model'
-    args.data_dir = '/HDD//kgec'
+    args.tokenizer_dir = '/HDD/yeonghwa/kgec/tokenizer'
+    args.vocab_model_path = f'/HDD/yeonghwa/kgec/tokenizer/{args.tokenizer_name}.model'
+    args.data_dir = '/HDD/yeonghwa/kgec'
 
-    # args.tokenizer_name = 'bpe_c'
-    args.result_dir = '/HDD//kgec/result'
-    args.result_path = f'/HDD//kgec/result/log_{args.tokenizer_name}.txt'
-    args.model_dir = '/HDD//kgec/model'
-    # args.gold_path = '/HDD//KGEC/result/bpe/gold.txt'
-    # args.pred_path = '/HDD//KGEC/result/bpe/pred.txt'
+    args.tokenizer_name = 'bpe' # bpe, bpe_c, char, char_c
+    args.result_dir = '/HDD/yeonghwa/kgec/result'
+    args.result_path = f'/HDD/yeonghwa/kgec/result/log_{args.tokenizer_name}.txt'
+    args.model_dir = '/HDD/yeonghwa/kgec/model'
+    # args.gold_path = '/HDD/yeonghwa/KGEC/result/bpe/gold.txt'
+    # args.pred_path = '/HDD/yeonghwa/KGEC/result/bpe/pred.txt'
 
-    args.lr = 1e-5
+    if not os.path.exists(args.result_dir):
+        os.makedirs(args.result_dir)
+    if not os.path.exists(os.path.join(args.result_dir, args.tokenizer_name)):
+        os.makedirs(os.path.join(args.result_dir, args.tokenizer_name))
+    if not os.path.exists(args.model_dir):
+        os.makedirs(args.model_dir)
+    if not os.path.exists(os.path.join(args.model_dir, args.tokenizer_name)):
+        os.makedirs(os.path.join(args.model_dir, args.tokenizer_name))
+    
+
+    args.lr = 5e-6
     args.num_warmup_steps = 2000
     args.batch_size = 64
     args.epoch = 20
@@ -179,7 +170,7 @@ if __name__ == '__main__':
     args.hidden_dim = 768
     args.patience = 4
 
-    cuda_num = 0
+    cuda_num = 2
     # define device
     args.device = torch.device(f'cuda:{cuda_num}' if torch.cuda.is_available() else 'cpu')
     print(f'using device: {args.device}\n')
@@ -192,9 +183,15 @@ if __name__ == '__main__':
     args.output_dim = args.vocab_size
     print(f'vocab size: {args.vocab_size}\n')
 
-    # train
-    training(args)
-    # test
-    testing(args)
 
-    
+    # # train
+    training(args)
+    # # test
+    translation(args)
+
+    # metric
+    scorer_path = '/home/yeonghwa/workspace/kgec/scripts/m2scorer.py'
+    gold_path = os.path.join(args.result_dir, args.tokenizer_name, f'gold.txt')
+    pred_path = os.path.join(args.result_dir, args.tokenizer_name, f'pred.txt')
+
+    os.system(f'{scorer_path} {pred_path} {gold_path}')
