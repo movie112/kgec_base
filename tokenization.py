@@ -47,7 +47,7 @@ if __name__ == '__main__':
         print('making txt file')
         make_txt(data_dir, txt_dir, data_num)
 
-    prefix = '/HDD/yeonghwa/kgec/tokenizer/char' # bpe or char / 저장 위치 및 이름
+    prefix = '/HDD//kgec/tokenizer/char' # bpe or char / 저장 위치 및 이름
     model_type = 'char' # bpe or char
     vocab_size = 30000
     char_coverage = 1.0 #0.9999 # char : 1.0
@@ -56,14 +56,14 @@ if __name__ == '__main__':
     if not os.path.exists(prefix + '.model'):
         construct_sp_vocab(txt_dir, data_num, prefix, vocab_size, char_coverage, model_type)
 
-    prefix = '/HDD/yeonghwa/kgec/tokenizer/bpe' # bpe or char / 저장 위치 및 이름
-    model_type = 'bpe' # bpe or char
-    vocab_size = 30000
-    char_coverage = 0.9999 #0.9999 # char : 1.0
+    # prefix = '/HDD//kgec/tokenizer/bpe' # bpe or char / 저장 위치 및 이름
+    # model_type = 'bpe' # bpe or char
+    # vocab_size = 30000
+    # char_coverage = 0.9999 #0.9999 # char : 1.0
 
-    # make vocab 
-    if not os.path.exists(prefix + '.model'):
-        construct_sp_vocab(txt_dir, data_num, prefix, vocab_size, char_coverage, model_type)
+    # # make vocab 
+    # if not os.path.exists(prefix + '.model'):
+    #     construct_sp_vocab(txt_dir, data_num, prefix, vocab_size, char_coverage, model_type)
     
     print('done')
 
