@@ -95,7 +95,7 @@ def training(args):
                 if stop_cnt == args.patience:
                     printsave(args.result_path, 'early stopping')
                     break
-                printsave('stop_cnt:', stop_cnt)    
+                printsave(args.result_path, f'stop_cnt:{stop_cnt}')    
             if epoch == 9:
                 torch.save(model.state_dict(), os.path.join(args.model_dir, args.tokenizer_name, 'model_10.pt'))
             elif epoch == 14:
