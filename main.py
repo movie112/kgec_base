@@ -141,16 +141,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     args.tokenizer_name = 'bpe'
-    args.tokenizer_dir = '/HDD/yeonghwa/kgec/tokenizer'
-    args.vocab_model_path = f'/HDD/yeonghwa/kgec/tokenizer/{args.tokenizer_name}.model'
-    args.data_dir = '/HDD/yeonghwa/kgec'
+    args.tokenizer_dir = '/HDD//kgec/tokenizer'
+    args.vocab_model_path = f'/HDD//kgec/tokenizer/{args.tokenizer_name}.model'
+    args.data_dir = '/HDD//kgec'
 
     args.tokenizer_name = 'bpe' # bpe, bpe_c, char, char_c
-    args.result_dir = '/HDD/yeonghwa/kgec/result'
-    args.result_path = f'/HDD/yeonghwa/kgec/result/log_{args.tokenizer_name}.txt'
-    args.model_dir = '/HDD/yeonghwa/kgec/model'
-    # args.gold_path = '/HDD/yeonghwa/KGEC/result/bpe/gold.txt'
-    # args.pred_path = '/HDD/yeonghwa/KGEC/result/bpe/pred.txt'
+    args.result_dir = '/HDD//kgec/result'
+    args.result_path = f'/HDD//kgec/result/log_{args.tokenizer_name}.txt'
+    args.model_dir = '/HDD//kgec/model'
+    # args.gold_path = '/HDD//KGEC/result/bpe/gold.txt'
+    # args.pred_path = '/HDD//KGEC/result/bpe/pred.txt'
 
     if not os.path.exists(args.result_dir):
         os.makedirs(args.result_dir)
@@ -190,7 +190,7 @@ if __name__ == '__main__':
     translation(args)
 
     # metric
-    scorer_path = '/home/yeonghwa/workspace/kgec/scripts/m2scorer.py'
+    scorer_path = '/home//workspace/kgec/scripts/m2scorer.py'
     gold_path = os.path.join(args.result_dir, args.tokenizer_name, f'gold.txt')
     pred_path = os.path.join(args.result_dir, args.tokenizer_name, f'pred.txt')
 
