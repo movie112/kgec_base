@@ -61,7 +61,7 @@ def make_loader(args, mode):
         #     tgt = tgt[:-rest]
         #     src = src[:-rest]
 
-        # gold.txt 저장
+        # gold.txt saving
         gold_path = os.path.join(args.result_dir, args.tokenizer_name, f'gold.txt')
         if not os.path.exists(gold_path):
             print('saving gold data...')
@@ -83,7 +83,7 @@ def make_loader(args, mode):
     else: # curriculum O
         print('making sequential sampler...')
         loader = DataLoader(dataset,
-                              batch_size=args.batch_size if mode != 'test' else 1, 
+                              batch_size=args.batch_size if mode != 'test' else 1, # inference, batch==1
                               sampler = SequentialSampler(dataset), 
                               collate_fn=collate_fn, 
                               num_workers=2)
