@@ -170,7 +170,7 @@ if __name__ == '__main__':
     args.hidden_dim = 768
     args.patience = 4
 
-    cuda_num = 2
+    cuda_num = 1
     # define device
     args.device = torch.device(f'cuda:{cuda_num}' if torch.cuda.is_available() else 'cpu')
     print(f'using device: {args.device}\n')
